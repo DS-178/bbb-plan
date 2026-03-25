@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wegweiser - 5. Etage</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Moderne Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- GLOBALE VARIABLEN - Hier kannst du alles zentral anpassen! -->
+    <style>
+        :root {
+            /* 1. Layout & Dimensionen */
+            --artboard-width: 1920px;
+            --artboard-height: 1080px;
+            --widget-height: 260px;
+            --padding-outer: 60px; /* Abstand zum Rand */
+            --spacing-columns: 100px; /* Abstand zwischen linker und rechter Spalte */
+
+            /* 2. Farben */
+            --color-bg-start: #002B49;
+            --color-bg-end: #00121F;
+            --color-accent-orange: #F77F00;
+            --color-accent-green: #009E60;
+            --color-widget-bg: #0B1C14;
+            --color-text-main: #ffffff;
+            --color-text-muted: rgba(255, 255, 255, 0.4);
+            --color-line: rgba(255, 255, 255, 0.1); /* Farbe der Trennlinien */
+
+            /* 3. Schriftgrößen - Liste */
+            --text-company: 22px;   /* Firmenname */
+            --text-sub: 13px;       /* Untertitel / Personen */
+            --text-room: 24px;      /* Raumnummern */
+
+            /* 4. Schriften */
+            --font-main: 'Outfit', sans-serif;
+            --font-headings: 'Playfair Display', serif;
+        }
+
+        /* RESET & WRAPPER - Verhindert Scrollen absolut */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #000000; /* Schwarzer Hintergrund für Letterboxing auf non-16:9 Screens */
+            font-family: var(--font-main);
+            color: var(--color-text-main);
+        }
+
+        #signage-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* DAS ARTBOARD - Immer exakt 1920x1080 */
+        #artboard {
+            width: var(--artboard-width);
+            height: var(--artboard-height);
+            position: relative;
+            background-image: radial-gradient(circle at 50% 0%, var(--color-bg-start) 0%, var(--color-bg-end) 100%);
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            transform-origin: center center;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* Padding via Variable */
+            padding: var(--padding-outer) calc(var(--padding-outer) + 20px);
+        }
+
+        /* Deko-Elemente Hintergrund */
+        .bg-texture {
+            background-image: url('https://images.unsplash.com/photo-1589923188900-85dae523342b?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            mix-blend-mode: overlay;
+            opacity: 0.05;
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .bg-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -55%);
+            width: 850px;
+            height: 850px;
+            opacity: 0.025;
+            z-index: 0;
+            filter: grayscale(1) brightness(3);
+            pointer-events: none;
+        }
+
+        /* -----------------------------------------
+           LISTEN LAYOUT LOGIK
+           ----------------------------------------- */
+        /* Die Spalten nutzen Flexbox, um den Platz aufzuteilen */
+        .column-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0; /* Verhindert Overflow */
+        }
+
+        .directory-list {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: space-between; /* Verteilt alle Items gleichmäßig im verfügbaren Platz! */
+        }
+
+        .directory-item {
+            display: flex;
+            align-items: center; /* Zentriert Inhalt und Raumnummer vertikal */
+            justify-content: space-between;
+            border-bottom: 1px solid var(--color-line);
+            flex: 1;
+        }
+
+        .directory-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Textgrößen-Zuweisung aus den Variablen */
+        .company-name { font-size: var(--text-company); font-weight: 500; tracking: 0.025em; line-height: 1.2; }
+        .sub-text { font-size: var(--text-sub); color: var(--color-text-muted); margin-top: 4px; line-height: 1.3; }
+        .room-number { font-size: var(--text-room); font-weight: 700; letter-spacing: 0.05em; flex-shrink: 0; margin-left: 20px; }
+
+        /* -----------------------------------------
+           WIDGET STYLING
+           ----------------------------------------- */
+        .panorama-widget {
+            height: var(--widget-height);
+            flex-shrink: 0; /* Das Widget darf nicht schrumpfen */
+            background-color: var(--color-widget-bg);
+            background-image: linear-gradient(to right, rgba(11, 28, 20, 1) 30%, rgba(11, 28, 20, 0.85) 100%), url('https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=1000&q=80');
+            background-size: cover;
+            background-position: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Der Wrapper zentriert und hält den skalierten Artboard -->
+<div id="signage-wrapper">
+
+    <!-- DAS ARTBOARD (1920x1080) -->
+    <div id="artboard">
+
+        <!-- Hintergründe -->
+        <div class="bg-texture"></div>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Bremer_Baumwollb%C3%B6rse_Logo.svg/512px-Bremer_Baumwollb%C3%B6rse_Logo.svg.png" class="bg-watermark" alt="Wasserzeichen" onerror="this.style.display='none'">
+
+        <!-- HEADER -->
+        <header class="relative z-20 flex flex-col items-center mb-[30px] flex-shrink-0">
+            <div class="w-[85px] h-[85px] rounded-2xl flex items-center justify-center p-2 mb-3 bg-white/5 backdrop-blur-md border border-white/10">
+                <img src="BWB_Logo_4C_blau_neg_mit%20Rand.png" class="w-full h-full object-contain" alt="Logo" onerror="this.src='https://placehold.co/100x100/ffffff/00335B?text=Logo'">
+            </div>
+            <div class="flex items-center gap-6" style="text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);">
+                <h1 class="text-[36px] font-semibold tracking-tight">5. Etage</h1>
+                <!-- Fixierte vertikale Trennlinie -->
+                <div class="h-[24px] w-[2px] bg-white/30 flex-shrink-0"></div>
+                <h1 class="text-[30px] font-light text-white/60 tracking-wider uppercase">5th Floor</h1>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT (Split in 2 Spalten) -->
+        <main class="relative z-10 flex flex-row flex-1 min-h-0" style="gap: var(--spacing-columns);">
+
+            <!-- ==========================================
+                 LINKE SPALTE
+                 ========================================== -->
+            <section class="column-content">
+                <!-- Spalten Header -->
+                <div class="flex items-center gap-4 border-b border-white/10 pb-3 mb-3 flex-shrink-0">
+                    <i class="ph-fill ph-arrow-circle-left text-[38px] text-white"></i>
+                    <div>
+                        <h2 class="text-[11px] font-medium text-white/30 uppercase tracking-[0.3em] mb-0.5">Nach Links</h2>
+                        <p class="text-[26px] font-semibold leading-none">Räume 510 - 532</p>
+                    </div>
+                </div>
+
+                <!-- Dynamische Liste -->
+                <div class="directory-list">
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Delfs & Associates GmbH</span>
+                            <span class="sub-text text-[var(--color-text-muted)] opacity-90 uppercase font-medium">– Personal</span>
+                        </div>
+                        <div class="room-number">514</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Hanseatisches Manufakturkontor GmbH & Co. KG</span>
+                            <div class="flex flex-col sub-text">
+                                <span>– Carl Töddensen GmbH & Co. KG</span>
+                                <span>– E & W Beteiligungs GmbH</span>
+                                <span>– MAIK WARNECKE GmbH Steuerberatungsgesellschaft</span>
+                            </div>
+                        </div>
+                        <div class="room-number">512</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Key Consult Vermögenstreuhand</span>
+                            <div class="flex flex-col sub-text">
+                                <span>– Marcus Tiebel</span>
+                                <span>– Heike Wontorra</span>
+                            </div>
+                        </div>
+                        <div class="room-number">511</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">KX Personal GmbH</span>
+                            <div class="flex flex-col sub-text">
+                                <span>– Pollex+partner (Holger Schmitt)</span>
+                                <span>– Karriere-bremen.de</span>
+                            </div>
+                        </div>
+                        <div class="room-number">523</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Mario Ellert – Illustration & Animation</span>
+                        </div>
+                        <div class="room-number">510</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Medien & Training</span>
+                            <span class="sub-text">– Katrin Röpke</span>
+                        </div>
+                        <div class="room-number">517</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Praxis Wellenbrecher</span>
+                            <span class="sub-text">– Stressmanagement & Coaching</span>
+                        </div>
+                        <div class="room-number">518</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Rechtsanwalt Folker Schönigt</span>
+                            <span class="sub-text">pbw Recht</span>
+                        </div>
+                        <div class="room-number">522</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Rechtsanwalt Rainer Linde</span>
+                            <div class="flex flex-col sub-text">
+                                <span>– ASSET Bauta GmbH</span>
+                                <span>– Lampe Immobilien GmbH</span>
+                            </div>
+                        </div>
+                        <div class="room-number">521</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">Rechtsanwalt Rüdiger Tholen</span>
+                        </div>
+                        <div class="room-number">521</div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ==========================================
+                 RECHTE SPALTE
+                 ========================================== -->
+            <section class="column-content">
+                <!-- Spalten Header -->
+                <div class="flex items-center justify-end gap-4 border-b border-white/10 pb-3 mb-3 flex-shrink-0 text-right">
+                    <div>
+                        <h2 class="text-[11px] font-medium text-white/30 uppercase tracking-[0.3em] mb-0.5">Nach Rechts</h2>
+                        <p class="text-[26px] font-semibold leading-none">Räume 500 - 509 & 533 - 535</p>
+                    </div>
+                    <i class="ph-fill ph-arrow-circle-right text-[38px] text-white"></i>
+                </div>
+
+                <!-- Dynamische Liste -->
+                <div class="directory-list">
+                    <div class="directory-item">
+                        <span class="company-name">bestorga GmbH</span>
+                        <div class="room-number">534</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <span class="company-name">Faserinstitut Bremen e.V.</span>
+                        <div class="room-number">535</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">IPS - Sabine Barz</span>
+                            <span class="sub-text">– Privatpraxis für Prävention</span>
+                        </div>
+                        <div class="room-number">500</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <span class="company-name">Sabine Barz – Frauenarztpraxis</span>
+                        <div class="room-number">501</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <span class="company-name">Rechtsanwalt Kai-Julian Folkerts</span>
+                        <div class="room-number">509</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <div class="flex flex-col">
+                            <span class="company-name">MVZ Fachärztezentrum Hanse</span>
+                            <span class="sub-text">– Gynäkologie</span>
+                        </div>
+                        <div class="room-number">502-504</div>
+                    </div>
+
+                    <div class="directory-item">
+                        <span class="company-name">Wirtschaftsrat der CDU e.V.</span>
+                        <div class="room-number">533</div>
+                    </div>
+                </div>
+
+                <!-- TURMSAAL WIDGET -->
+                <div class="panorama-widget rounded-[28px] flex flex-row p-6 gap-6">
+                    <!-- Akzentleiste unten -->
+                    <div class="absolute bottom-0 left-0 w-full h-[5px] flex">
+                        <div class="flex-1 bg-[#F77F00]"></div>
+                        <div class="flex-1 bg-white"></div>
+                        <div class="flex-1 bg-[#009E60]"></div>
+                    </div>
+
+                    <!-- Links: Branding -->
+                    <div class="w-[32%] border-r border-white/10 flex flex-col justify-between pr-6 relative z-10">
+                        <div>
+                            <div class="flex items-center gap-3 mb-3">
+                                <img src="Armoirie_Côte d'Ivoire.png" onerror="this.src='https://placehold.co/60x60/transparent/ffffff?text=CIV'" class="h-[34px] object-contain drop-shadow-md" alt="Wappen">
+                                <div class="h-[22px] w-[1px] bg-white/20"></div>
+                                <img src="BWB_CC_2026_Leitmotiv_RZ.png" onerror="this.src='https://placehold.co/120x40/ffffff/000000?text=BWB'" class="h-[24px] bg-white p-1 rounded" alt="BWB Logo">
+                            </div>
+                            <div class="inline-block bg-[#F77F00] px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-widest mb-2 shadow-lg">Official Side Event</div>
+                            <h1 class="font-headings text-[40px] leading-[0.85] uppercase tracking-tighter text-white drop-shadow-2xl">Turmsaal<br><span class="text-[#F77F00]">506</span></h1>
+                        </div>
+                        <div class="text-[10px] text-white/70 font-medium flex flex-col gap-1.5">
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-calendar text-[#F77F00]"></i> Thu, March 26, 2026</div>
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-clock text-[#009E60]"></i> 09:00 – 16:00</div>
+                        </div>
+                    </div>
+
+                    <!-- Rechts: Highlights -->
+                    <div class="flex-1 flex flex-col relative z-10">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="h-[1px] w-[20px] bg-[#009E60]"></div>
+                            <span class="text-[10px] font-bold uppercase tracking-[0.4em] text-white/50">Exhibition Highlights</span>
+                        </div>
+
+                        <div class="flex-1 flex flex-row gap-3 items-stretch pb-1">
+                            <div class="flex-1 glass-card rounded-xl overflow-hidden relative border-b-4 border-[#F77F00]">
+                                <img src="Kakao.webp" onerror="this.src='https://images.unsplash.com/photo-1614088656627-75e117822295?auto=format&fit=crop&w=300&q=80'" class="w-full h-full object-cover" alt="Cocoa">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                                <div class="absolute bottom-0 left-0 w-full p-2.5">
+                                    <p class="text-[11px] font-bold uppercase tracking-wider leading-tight">Cocoa</p>
+                                </div>
+                            </div>
+                            <div class="flex-1 glass-card rounded-xl overflow-hidden relative border-b-4 border-[#009E60]">
+                                <img src="https://images.unsplash.com/photo-1559525839-b184a4d698c7?auto=format&fit=crop&w=300&q=80" onerror="this.src='https://placehold.co/300x200/000000/ffffff?text=Coffee'" class="w-full h-full object-cover" alt="Coffee">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                                <div class="absolute bottom-0 left-0 w-full p-2.5">
+                                    <p class="text-[11px] font-bold uppercase tracking-wider leading-tight">Coffee</p>
+                                </div>
+                            </div>
+                            <div class="flex-1 glass-card rounded-xl overflow-hidden relative border-b-4 border-[#F77F00]">
+                                <img src="Cashew.jpg" onerror="this.src='https://images.unsplash.com/photo-1596489397669-e0d4d9ccda07?auto=format&fit=crop&w=300&q=80'" class="w-full h-full object-cover" alt="Cashews">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                                <div class="absolute bottom-0 left-0 w-full p-2.5">
+                                    <p class="text-[11px] font-bold uppercase tracking-wider leading-tight">Cashews</p>
+                                </div>
+                            </div>
+                            <div class="flex-1 glass-card rounded-xl overflow-hidden relative border-b-4 border-[#009E60]">
+                                <img src="falco-dry-fruit-782317_1280.jpg" onerror="this.src='https://images.unsplash.com/photo-1596105307524-7fb8b783cbbe?auto=format&fit=crop&w=300&q=80'" class="w-full h-full object-cover" alt="Fruits">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                                <div class="absolute bottom-0 left-0 w-full p-2.5">
+                                    <p class="text-[11px] font-bold uppercase tracking-wider leading-tight">Fruits</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    /**
+     * AUTO-FIT LOGIK FÜR DIGITAL SIGNAGE
+     * Berechnet die Größe des Browserfensters und skaliert das 1920x1080
+     * Artboard exakt so, dass es immer in voller Größe zentriert sichtbar ist.
+     */
+    function scaleArtboard() {
+        const wrapper = document.getElementById('signage-wrapper');
+        const artboard = document.getElementById('artboard');
+
+        if(!wrapper || !artboard) return;
+
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        // Skalierungsfaktor ermitteln (die kleinere Seite gewinnt)
+        const scaleX = windowWidth / 1920;
+        const scaleY = windowHeight / 1080;
+        const scale = Math.min(scaleX, scaleY);
+
+        // Skalierung anwenden
+        artboard.style.transform = `scale(${scale})`;
+    }
+
+    // Beim Laden und bei Änderungen der Fenstergröße ausführen
+    window.addEventListener('resize', scaleArtboard);
+    window.addEventListener('DOMContentLoaded', scaleArtboard);
+
+    // Sicherheitshalber nochmal nach dem Laden der Schriften
+    if (document.fonts) {
+        document.fonts.ready.then(scaleArtboard);
+    }
+</script>
+
+</body>
+</html>
